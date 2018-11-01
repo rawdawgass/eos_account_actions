@@ -2,7 +2,7 @@ import sqlite3, os
 
 DEFAULT_PATH = os.path.join(os.path.dirname(__file__), 'eos_actions.db')
 
-def db_connect(db_path=DEFAULT_PATH):  
+def db_connect(db_path=DEFAULT_PATH):
     con = sqlite3.connect(db_path)
     return con
 
@@ -30,18 +30,14 @@ actions_table = '''
         currency text,
         memo text,
         query text,
-        FOREIGN KEY(query) REFERENCES accounts(account_id) 
+        FOREIGN KEY(query) REFERENCES accounts(account_id)
         )'''
 
 
 cur.execute(actions_table)
 
-#view for last_action for easiness
-#cur.execute('DROP VIEW IF EXISTS last_actions')
-#dbcon.commit()
-
 cur.execute('''
-   
+
     CREATE VIEW IF NOT EXISTS last_actions
     AS
     select query account, max(account_action_seq) last_action_seq
