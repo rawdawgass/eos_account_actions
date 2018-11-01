@@ -9,12 +9,12 @@ def get_last_action_account(account):
     last_account_seq = output['actions'][-1]['account_action_seq']
     return last_account_seq
 
-
+#make this better
 def get_last_action_db(account):
-    try: 
-        last_action = pd.read_sql('''SELECT last_action_seq from last_actions 
+    try:
+        last_action = pd.read_sql('''SELECT last_action_seq from last_actions
             where account = "{}"'''.format(account), dbcon)['last_action_seq'].iloc[0]
-        print ('last_action_seq = {}'.format(last_action))
+        print ('    last_seq = {}'.format(last_action))
         return last_action
 
     except IndexError:
@@ -24,11 +24,9 @@ def get_last_action_db(account):
                                 '''.format(account))
             dbcon.commit()
             return 0
-    #remove this later
-        except:
-            #raise
-            return 0
 
+        except:
+            return 0
 
 def parse_account_json(account, account_json):
     data = account_json
@@ -59,17 +57,13 @@ def parse_account_json(account, account_json):
 
         row_data.append(row)
     df = pd.DataFrame(row_data)
-  
 
-    #define rows here:
+    df = df.reindex(columns = ['global_action_seq', 'account_action_seq', 'block_num', 'block_time',
+             'trx_id', 'type', 'sender', 'receiver', 'quantity', 'currency',  'memo', 'query'])
 
-    df = df.ix[:, ['global_action_seq', 'account_action_seq', 'block_num', 'block_time',
-             'trx_id', 'type', 'sender', 'receiver', 'quantity', 'currency',  'memo', 'query']]
-    #df = df[df['type']=='transfer']
 
     df['query'] = account
-    
-    #df['quantity'] = df['quantity'].fillna(value=None)    
+
     df['currency'] = df['quantity'].apply(lambda x: str(x).split(' ')[1]
                                             if pd.notnull(x) else x)
 
@@ -89,14 +83,10 @@ def parse_account_json(account, account_json):
                 pass
 
     df['quantity'] = df.apply(quantity_clean, axis=1)
-
-
     df = df[['global_action_seq', 'account_action_seq', 'block_num', 'block_time',
              'trx_id', 'type', 'sender', 'receiver', 'quantity', 'currency',  'memo', 'query']]
-
     return df
 
- 
 def extract_json(account, pos, offset):
     call = 'cleos -u https://eos.greymass.com:443 get actions {} {} {} -j'.format(account, pos, offset)
     output = json.loads(subprocess.check_output(call, shell=True).decode('utf-8'))
@@ -106,7 +96,7 @@ def extract_json(account, pos, offset):
 
 #how do i deduplicate from here?
 def store(account):
-    print ('extracting actions for {}'.format(account))
+    print ('{} extracting...'.format(account))
     #like actual from cleos
     last_action_actual = get_last_action_account(account)
     last_action_db = get_last_action_db(account)
@@ -114,7 +104,7 @@ def store(account):
     #this is where i need to fix the thing
     while last_action_db <= last_action_actual:
         if last_action_actual == last_action_db:
-            print ('no new actions')
+            print ('    no new actions')
             break
 
         if last_action_db == 0:
@@ -122,7 +112,7 @@ def store(account):
         else:
             last_action_db = last_action_db + 1
 
-        df = extract_json(account, last_action_db, +5000)
+        df = extract_json(account, last_action_db, +1000)
         df = df.drop_duplicates(subset=['trx_id', 'quantity', 'memo'])
         df.to_sql('actions', dbcon, if_exists='append', index=False)
         last_action_db = get_last_action_db(account)
@@ -136,7 +126,11 @@ def store(account):
              from    actions
              group by trx_id, quantity, memo
              )
-        '''
+        ''')
 
-        )
     dbcon.commit()
+
+def db_to_csv():
+    extract_df = pd.read_sql("SELECT * from actions", dbcon)
+    extract_df.to_csv('db_extract.csv', index=False)
+    print ('db extracted to csv')
