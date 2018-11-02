@@ -89,7 +89,7 @@ def parse_account_json(account, account_json):
 
 def extract_json(account, pos, offset):
     call = 'cleos -u https://eos.greymass.com:443 get actions {} {} {} -j'.format(account, pos, offset)
-    output = json.loads(subprocess.check_output(call, shell=True).decode('utf-8'))
+    output = json.loads(subprocess.check_output(call, shell=True).decode('utf-8', 'ignore').strip())
     df = parse_account_json(account, output)
     return df
 
@@ -117,6 +117,7 @@ def store(account):
         df.to_sql('actions', dbcon, if_exists='append', index=False)
         last_action_db = get_last_action_db(account)
 
+    #make this shit better
     dbcon.cursor().execute(
         '''
         DELETE  from actions
@@ -130,8 +131,9 @@ def store(account):
 
     dbcon.commit()
 
-def db_to_csv():
+#make this shit better
+def db_to_csv(account):
     timestr = time.strftime("%Y%m%d-%H%M%S")
     extract_df = pd.read_sql("SELECT * from actions where type='transfer'", dbcon)
-    extract_df.to_csv('db_extract_{}.csv'.format(timestr), index=False)
+    extract_df.to_csv('{}_extract_{}.csv'.format(timestr), index=False)
     print ('db extracted to csv')
