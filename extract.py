@@ -1,4 +1,4 @@
-import os, platform, subprocess, json, sys
+import os, platform, subprocess, json, sys, time
 import pandas as pd
 from models import dbcon
 
@@ -131,6 +131,7 @@ def store(account):
     dbcon.commit()
 
 def db_to_csv():
-    extract_df = pd.read_sql("SELECT * from actions", dbcon)
-    extract_df.to_csv('db_extract.csv', index=False)
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    extract_df = pd.read_sql("SELECT * from actions where type='transfer'", dbcon)
+    extract_df.to_csv('db_extract_{}.csv'.format(timestr), index=False)
     print ('db extracted to csv')
