@@ -2,9 +2,11 @@ import os, platform, subprocess, json, sys, time
 import pandas as pd
 from models import dbcon
 
+endpoint = 'https://eos.greymass.com:443'
+
 #so we can do a while loop to extract all account actions
 def get_last_action_account(account):
-    call = 'cleos -u https://eos.greymass.com:443 get actions {} -j -1 -1'.format(account)
+    call = 'cleos -u {} get actions {} -j -1 -1'.format(endpoint, account)
     output = json.loads(subprocess.check_output(call, shell=True).decode('utf-8'))
     last_account_seq = output['actions'][-1]['account_action_seq']
     return last_account_seq
@@ -88,7 +90,7 @@ def parse_account_json(account, account_json):
     return df
 
 def extract_json(account, pos, offset):
-    call = 'cleos -u https://eos.greymass.com:443 get actions {} {} {} -j'.format(account, pos, offset)
+    call = 'cleos -u {} get actions {} {} {} -j'.format(endpoint, account, pos, offset)
     output = json.loads(subprocess.check_output(call, shell=True).decode('utf-8', 'ignore').strip())
     df = parse_account_json(account, output)
     return df
